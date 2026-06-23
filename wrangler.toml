@@ -1,0 +1,7 @@
+name = "invest-radar"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "."
+not_found_handling = "none"
