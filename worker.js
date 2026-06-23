@@ -269,21 +269,25 @@ function parseRSS(xml) {
 
 async function fetchFeed(feed) {
   try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 7000);
     const res = await fetch(feed.url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InvestRadarBot/1.0)', 'Accept-Encoding': 'identity' },
-      signal: ctrl.signal,
+      signal: AbortSignal.timeout(6000),
     });
-    clearTimeout(t);
     if (!res.ok) return [];
-    return (await parseRSS(await res.text())).map(i => ({ ...i, category: feed.category }));
+    const text = await res.text();
+    return parseRSS(text).map(i => ({ ...i, category: feed.category }));
   } catch { return []; }
 }
 
 async function handleNews() {
-  const results = await Promise.allSettled(FEEDS.map(fetchFeed));
-  const news = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+  // Dispara todos os feeds em paralelo com timeout global de 20s
+  const raceTimeout = new Promise(resolve =>
+    setTimeout(() => resolve([]), 20000)
+  );
+  const fetchAll = Promise.allSettled(FEEDS.map(fetchFeed)).then(results =>
+    results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+  );
+  const news = await Promise.race([fetchAll, raceTimeout]);
   news.sort((a, b) => new Date(b.date) - new Date(a.date));
   return { news: news.slice(0, 40), quote: getQuote() };
 }
@@ -333,17 +337,24 @@ export default {
     }
 
     if (url.pathname === '/api/news') {
-      const cached = await cache.match(cacheKey);
-      if (cached) return cached;
+      // Sempre retorna JSON válido — nunca resposta vazia
+      const safeNewsResponse = (payload) => new Response(JSON.stringify(payload), {
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=1800' },
+      });
       try {
+        const cached = await cache.match(cacheKey);
+        if (cached) {
+          const body = await cached.text();
+          if (body && body.length > 10) return new Response(body, {
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
         const result = await handleNews();
-        const res = new Response(JSON.stringify({ success: true, ...result, updatedAt: new Date().toISOString() }), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=1800' },
-        });
+        const res = safeNewsResponse({ success: true, ...result, updatedAt: new Date().toISOString() });
         ctx.waitUntil(cache.put(cacheKey, res.clone()));
         return res;
       } catch (e) {
-        return json({ success: false, error: e.message, news: [], quote: getQuote() });
+        return safeNewsResponse({ success: false, error: e.message, news: [], quote: getQuote() });
       }
     }
 
