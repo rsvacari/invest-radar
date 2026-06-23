@@ -214,14 +214,13 @@ async function handleFiis() {
 }
 
 // ===== NEWS =====
+// Usa rss2json.com (gratuito, 10k req/mês) — retorna JSON diretamente, sem parsear XML
 const FEEDS = [
-  { url: 'https://g1.globo.com/rss/g1/tecnologia/', category: 'tech' },
-  { url: 'https://canaltech.com.br/rss/', category: 'tech' },
-  { url: 'https://rss.tecmundo.com.br/feed', category: 'tech' },
-  { url: 'https://www.mining.com/feed/', category: 'mining' },
-  { url: 'https://feeds.feedburner.com/TechCrunch', category: 'tech' },
-  { url: 'https://www.theverge.com/rss/index.xml', category: 'tech' },
-  { url: 'https://www.infomoney.com.br/feed/', category: 'finance' },
+  { rss: 'https://g1.globo.com/rss/g1/tecnologia/', category: 'tech' },
+  { rss: 'https://canaltech.com.br/rss/', category: 'tech' },
+  { rss: 'https://www.mining.com/feed/', category: 'mining' },
+  { rss: 'https://feeds.feedburner.com/TechCrunch', category: 'tech' },
+  { rss: 'https://www.infomoney.com.br/feed/', category: 'finance' },
 ];
 
 const QUOTES = [
@@ -247,47 +246,26 @@ function getQuote() {
 }
 
 function parseRSS(xml) {
-  const blocks = xml.match(/<item[^>]*>([\s\S]*?)<\/item>/gi)
-    || xml.match(/<entry[^>]*>([\s\S]*?)<\/entry>/gi) || [];
-  return blocks.slice(0, 8).flatMap(block => {
-    const t = block.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
-    const l = block.match(/<link[^>]*>(?:<!\[CDATA\[)?(https?[^<\s]+)(?:\]\]>)?<\/link>/i)
-      || block.match(/<link[^>]*href="([^"]+)"/i);
-    const d = block.match(/<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i)
-      || block.match(/<summary[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/summary>/i);
-    const dt = block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)
-      || block.match(/<published[^>]*>([\s\S]*?)<\/published>/i);
-    if (!t || !l) return [];
-    return [{
-      title: t[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim(),
-      link: l[1].trim(),
-      desc: d ? d[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim().slice(0, 200) : '',
-      date: dt ? new Date(dt[1].trim()).toISOString() : new Date().toISOString(),
-    }];
-  });
-}
-
-async function fetchFeed(feed) {
+async function fetchFeedViaJson(feed) {
   try {
-    const res = await fetch(feed.url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InvestRadarBot/1.0)', 'Accept-Encoding': 'identity' },
-      signal: AbortSignal.timeout(6000),
-    });
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.rss)}&count=8`;
+    const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return [];
-    const text = await res.text();
-    return parseRSS(text).map(i => ({ ...i, category: feed.category }));
+    const data = await res.json();
+    if (data.status !== 'ok' || !Array.isArray(data.items)) return [];
+    return data.items.map(item => ({
+      title: item.title || '',
+      link:  item.link  || item.guid || '',
+      desc:  (item.description || '').replace(/<[^>]+>/g, '').trim().slice(0, 200),
+      date:  item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+      category: feed.category,
+    })).filter(i => i.title && i.link);
   } catch { return []; }
 }
 
 async function handleNews() {
-  // Dispara todos os feeds em paralelo com timeout global de 20s
-  const raceTimeout = new Promise(resolve =>
-    setTimeout(() => resolve([]), 20000)
-  );
-  const fetchAll = Promise.allSettled(FEEDS.map(fetchFeed)).then(results =>
-    results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
-  );
-  const news = await Promise.race([fetchAll, raceTimeout]);
+  const results = await Promise.allSettled(FEEDS.map(fetchFeedViaJson));
+  const news = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
   news.sort((a, b) => new Date(b.date) - new Date(a.date));
   return { news: news.slice(0, 40), quote: getQuote() };
 }
