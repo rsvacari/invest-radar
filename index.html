@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Radar de Investimentos — Ações e FIIs da B3 em oportunidade, com análise fundamentalista automática e notícias de tecnologia e mineração." />
+  <title>Radar Invest · Oportunidades B3</title>
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Favicon inline SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>" />
+
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-inner">
+    <a class="logo" href="/">
+      <div class="logo-icon">📡</div>
+      <span class="logo-text">Radar<span>Invest</span></span>
+    </a>
+
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="oportunidades">
+        📊 Oportunidades
+      </button>
+      <button class="nav-tab" data-tab="noticias">
+        📰 Notícias & Insights
+      </button>
+    </nav>
+
+    <div class="header-right">
+      <div class="update-badge">
+        <span class="update-dot"></span>
+        <span>Atualizado: <strong id="updated-time">—</strong></span>
+      </div>
+      <button class="btn" id="btn-refresh" title="Atualizar dados">
+        🔄 Atualizar
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<main class="main">
+
+  <!-- ============ TAB: OPORTUNIDADES ============ -->
+  <section class="tab-panel active" id="tab-oportunidades">
+
+    <!-- Stat Cards -->
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-label">Total de Ativos</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-sub">Ações + FIIs analisados</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Forte Compra</div>
+        <div class="stat-value" style="color:var(--strong-buy)" id="stat-strong-buy">—</div>
+        <div class="stat-sub">Score ≥ 80 pontos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Compra</div>
+        <div class="stat-value" style="color:var(--buy)" id="stat-buy">—</div>
+        <div class="stat-sub">Score ≥ 65 pontos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Score Médio</div>
+        <div class="stat-value" id="stat-avg">—</div>
+        <div class="stat-sub">De 0 a 100 pontos</div>
+      </div>
+    </div>
+
+    <!-- Sub-tabs Ações / FIIs -->
+    <div class="sub-tabs">
+      <button class="sub-tab active" data-sub="acoes">🏦 Ações BR</button>
+      <button class="sub-tab" data-sub="fiis">🏢 Fundos Imobiliários</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="score-legend">
+      <span class="score-legend-label">Score:</span>
+      <span class="rec-badge rec-strong-buy">FORTE COMPRA ≥80</span>
+      <span class="rec-badge rec-buy">COMPRA ≥65</span>
+      <span class="rec-badge rec-neutral">NEUTRO ≥50</span>
+      <span class="rec-badge rec-caution">CAUTELA ≥35</span>
+      <span class="rec-badge rec-avoid">EVITAR &lt;35</span>
+    </div>
+
+    <!-- Sub-panel: AÇÕES -->
+    <div class="sub-panel active" id="sub-acoes">
+      <div class="filter-bar">
+        <div class="search-box">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input type="text" id="search-acoes" placeholder="Buscar ticker ou nome..." />
+        </div>
+        <select class="filter-select" id="filter-rec-acoes">
+          <option value="">Todas recomendações</option>
+          <option value="rec-strong-buy">Forte Compra</option>
+          <option value="rec-buy">Compra</option>
+          <option value="rec-neutral">Neutro</option>
+          <option value="rec-caution">Cautela</option>
+          <option value="rec-avoid">Evitar</option>
+        </select>
+      </div>
+      <div id="acoes-container">
+        <div class="state-card">
+          <div class="spinner"></div>
+          <h3>Carregando ações...</h3>
+          <p>Buscando dados do Fundamentus.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-panel: FIIs -->
+    <div class="sub-panel" id="sub-fiis" style="display:none">
+      <div class="filter-bar">
+        <div class="search-box">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input type="text" id="search-fiis" placeholder="Buscar FII ou segmento..." />
+        </div>
+        <select class="filter-select" id="filter-rec-fiis">
+          <option value="">Todas recomendações</option>
+          <option value="rec-strong-buy">Forte Compra</option>
+          <option value="rec-buy">Compra</option>
+          <option value="rec-neutral">Neutro</option>
+          <option value="rec-caution">Cautela</option>
+          <option value="rec-avoid">Evitar</option>
+        </select>
+      </div>
+      <div id="fiis-container">
+        <div class="state-card">
+          <div class="spinner"></div>
+          <h3>Carregando FIIs...</h3>
+          <p>Buscando dados do Fundamentus.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div style="margin-top:32px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);font-size:.78rem;color:var(--muted);line-height:1.7">
+      ⚠️ <strong style="color:var(--muted2)">Aviso importante:</strong>
+      As pontuações são calculadas automaticamente com base em indicadores fundamentalistas públicos do
+      <a href="https://www.fundamentus.com.br" target="_blank" rel="noopener" style="color:var(--primary)">Fundamentus</a>.
+      Não constituem recomendação de investimento. Sempre faça sua própria análise antes de investir.
+      Dados atualizados a cada 2 horas.
+    </div>
+
+  </section>
+
+  <!-- ============ TAB: NOTÍCIAS ============ -->
+  <section class="tab-panel" id="tab-noticias">
+
+    <div class="news-layout">
+      <!-- News Feed -->
+      <div>
+        <div class="news-filters">
+          <button class="news-filter-btn active" data-cat="all">🌐 Todas</button>
+          <button class="news-filter-btn" data-cat="tech">💻 Tecnologia</button>
+          <button class="news-filter-btn" data-cat="mining">⛏️ Mineração</button>
+          <button class="news-filter-btn" data-cat="finance">📈 Mercados</button>
+        </div>
+        <div id="news-container">
+          <div class="state-card">
+            <div class="spinner"></div>
+            <h3>Carregando notícias...</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <!-- Quote of the Day -->
+        <div class="quote-card" id="quote-container">
+          <div class="quote-label">✨ Frase do Dia</div>
+          <div class="quote-text" style="color:var(--muted2)">Carregando...</div>
+        </div>
+
+        <!-- Tips for Mining IT Professional -->
+        <div class="sidebar-card">
+          <div class="sidebar-title">💡 Para o Profissional de TI em Mineração</div>
+          <div class="tip-item">
+            <span class="tip-icon">🛡️</span>
+            <div class="tip-text">Ambientes de mineração exigem OT/IT convergência. Mantenha protocolos Purdue Model e segmente redes SCADA.</div>
+          </div>
+          <div class="tip-item">
+            <span class="tip-icon">📡</span>
+            <div class="tip-text">IoT industrial (IIoT) em minas permite monitoramento em tempo real de equipamentos e segurança dos trabalhadores.</div>
+          </div>
+          <div class="tip-item">
+            <span class="tip-icon">📊</span>
+            <div class="tip-text">Dados de sensores de produção alimentam dashboards para decisões rápidas. Considere Apache Kafka para streaming.</div>
+          </div>
+          <div class="tip-item">
+            <span class="tip-icon">☁️</span>
+            <div class="tip-text">Cloud mining analytics: AWS IoT, Azure IoT Hub e Google Cloud IoT têm casos de uso robustos para o setor.</div>
+          </div>
+          <div class="tip-item">
+            <span class="tip-icon">🤖</span>
+            <div class="tip-text">Machine Learning para manutenção preditiva de equipamentos pesados reduz downtime e custos operacionais.</div>
+          </div>
+        </div>
+
+        <!-- Market Cheat Sheet -->
+        <div class="sidebar-card">
+          <div class="sidebar-title">📋 Guia Rápido de Indicadores</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="color:var(--muted2)">P/L ideal ações</span>
+              <span style="color:var(--strong-buy);font-weight:600">6–18x</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="color:var(--muted2)">P/VP desconto</span>
+              <span style="color:var(--strong-buy);font-weight:600">&lt; 1,0</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="color:var(--muted2)">DY bom ações</span>
+              <span style="color:var(--buy);font-weight:600">&gt; 6%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="color:var(--muted2)">ROE excelente</span>
+              <span style="color:var(--buy);font-weight:600">&gt; 20%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="color:var(--muted2)">DY bom FIIs</span>
+              <span style="color:var(--strong-buy);font-weight:600">&gt; 10%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:6px 0">
+              <span style="color:var(--muted2)">P/VP FII desconto</span>
+              <span style="color:var(--strong-buy);font-weight:600">&lt; 0,90</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <p>
+    RadarInvest · Dados via <a href="https://www.fundamentus.com.br" target="_blank" rel="noopener">Fundamentus</a> ·
+    Não é recomendação de investimento ·
+    <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+  </p>
+</footer>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <!-- preenchido via JS -->
+  </div>
+</div>
+
+<!-- Fix sub-panel visibility toggling -->
+<script>
+  // Override switchSubTab to handle display:none properly
+  const _origSwitchSubTab = window.switchSubTab;
+  document.querySelectorAll('.sub-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      const sub = t.dataset.sub;
+      document.querySelectorAll('.sub-panel').forEach(p => {
+        p.style.display = p.id === 'sub-' + sub ? 'block' : 'none';
+      });
+    });
+  });
+</script>
+
+<script src="/assets/js/app.js"></script>
+</body>
+</html>
