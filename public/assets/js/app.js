@@ -1,3 +1,5 @@
+const API_BASE = 'https://invest-radar.renatovacari.workers.dev';
+
 // ===== State =====
 const state = {
   activeTab: 'oportunidades',
@@ -91,7 +93,7 @@ async function loadAcoes(force = false) {
   state.loading.acoes = true;
   renderAcoes();
   try {
-    const url = '/api/acoes' + (force ? '?bust=' + Date.now() : '');
+    const url = API_BASE + '/api/acoes' + (force ? '?bust=' + Date.now() : '');
     const r = await fetch(url);
     const json = await safeJson(r);
     if (!json.success) throw new Error(json.error);
@@ -112,7 +114,7 @@ async function loadFiis(force = false) {
   state.loading.fiis = true;
   renderFiis();
   try {
-    const url = '/api/fiis' + (force ? '?bust=' + Date.now() : '');
+    const url = API_BASE + '/api/fiis' + (force ? '?bust=' + Date.now() : '');
     const r = await fetch(url);
     const json = await safeJson(r);
     if (!json.success) throw new Error(json.error);
@@ -132,7 +134,7 @@ async function loadNews() {
   state.loading.news = true;
   renderNews();
   try {
-    const r = await fetch('/api/news');
+    const r = await fetch(API_BASE + '/api/news');
     const json = await safeJson(r);
     state.news = json.news || [];
     state.quote = json.quote;
