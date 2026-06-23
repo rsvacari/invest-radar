@@ -312,7 +312,13 @@ export default {
 
     if (url.pathname === '/api/news') {
       const result = handleNews();
-      return json({ success: true, ...result });
+      return new Response(JSON.stringify({ success: true, ...result }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store',
+        },
+      });
     }
 
     // Serve arquivos estáticos da pasta public/

@@ -132,7 +132,7 @@ async function loadNews() {
   state.loading.news = true;
   renderNews();
   try {
-    const r = await fetch('/api/news');
+    const r = await fetch('/api/news?v=2');
     const json = await safeJson(r);
     state.news = json.news || [];
     state.quote = json.quote;
