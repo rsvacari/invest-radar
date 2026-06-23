@@ -75,6 +75,17 @@ function switchSubTab(sub) {
 }
 
 // ===== API Fetching =====
+async function safeJson(r) {
+  const text = await r.text();
+  if (!text || text.trim() === '') throw new Error('API retornou resposta vazia. Verifique o deploy no Cloudflare.');
+  try {
+    return JSON.parse(text);
+  } catch {
+    const preview = text.slice(0, 120);
+    throw new Error(`Resposta inválida da API: ${preview}`);
+  }
+}
+
 async function loadAcoes(force = false) {
   if (state.loading.acoes && !force) return;
   state.loading.acoes = true;
@@ -82,7 +93,7 @@ async function loadAcoes(force = false) {
   try {
     const url = '/api/acoes' + (force ? '?bust=' + Date.now() : '');
     const r = await fetch(url);
-    const json = await r.json();
+    const json = await safeJson(r);
     if (!json.success) throw new Error(json.error);
     state.acoes = json.data;
     state.updatedAt.acoes = json.updatedAt;
@@ -103,7 +114,7 @@ async function loadFiis(force = false) {
   try {
     const url = '/api/fiis' + (force ? '?bust=' + Date.now() : '');
     const r = await fetch(url);
-    const json = await r.json();
+    const json = await safeJson(r);
     if (!json.success) throw new Error(json.error);
     state.fiis = json.data;
     state.updatedAt.fiis = json.updatedAt;
@@ -122,11 +133,10 @@ async function loadNews() {
   renderNews();
   try {
     const r = await fetch('/api/news');
-    const json = await r.json();
-    if (!json.success) throw new Error(json.error || 'Erro ao carregar notícias');
+    const json = await safeJson(r);
     state.news = json.news || [];
     state.quote = json.quote;
-    state.error.news = null;
+    state.error.news = json.success ? null : json.error;
   } catch (e) {
     state.error.news = e.message;
   } finally {
