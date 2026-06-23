@@ -245,7 +245,6 @@ function getQuote() {
   return QUOTES[Math.floor(Date.now() / 86400000) % QUOTES.length];
 }
 
-function parseRSS(xml) {
 async function fetchFeedViaJson(feed) {
   try {
     const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.rss)}&count=8`;
