@@ -104,7 +104,10 @@ async function handleAcoes() {
       patrimLiq: parseBR(cells[18]), divBrutPatrim: parseBR(cells[19]),
       cresc5a: parseBR(cells[20]),
     };
-    if (!a.papel || a.papel.length > 8 || !a.liq2meses || a.liq2meses < 200000) continue;
+    // Ticker: entre 4 e 10 caracteres, sem espaços
+    if (!a.papel || a.papel.length < 4 || a.papel.length > 10 || a.papel.includes(' ')) continue;
+    // Liquidez: aceita qualquer valor > 0 (a escala será descoberta via /api/debug)
+    if (a.liq2meses === null || a.liq2meses <= 0) continue;
     a.score = scoreAcao(a);
     a.rec = rec(a.score);
     acoes.push(a);
@@ -113,6 +116,29 @@ async function handleAcoes() {
   if (!acoes.length) throw new Error(`Nenhuma ação parseada de ${rows.length} linhas`);
   acoes.sort((a, b) => b.score - a.score);
   return acoes.slice(0, 80);
+}
+
+// Diagnóstico: retorna as primeiras 5 linhas brutas para inspecionar colunas
+async function handleDebug() {
+  const res = await fetch('https://www.fundamentus.com.br/resultado.php', {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml',
+      'Accept-Language': 'pt-BR,pt;q=0.9',
+      'Accept-Encoding': 'identity',
+      'Referer': 'https://www.fundamentus.com.br/',
+    },
+  });
+  const html = await res.text();
+  const tableMatch = html.match(/<table[^>]*id="resultado"[^>]*>([\s\S]*?)<\/table>/i);
+  if (!tableMatch) return { error: 'tabela não encontrada', htmlLen: html.length, start: html.slice(0, 300) };
+  const tbodyMatch = tableMatch[1].match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/i);
+  if (!tbodyMatch) return { error: 'tbody não encontrado' };
+  const rows = tbodyMatch[1].match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+  const sample = rows.slice(0, 3).map(row => {
+    return (row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || []).map(cleanCell);
+  });
+  return { totalRows: rows.length, sample };
 }
 
 // ===== FIIs =====
@@ -175,7 +201,8 @@ async function handleFiis() {
       vpCota: parseBR(cells[9]), liquidez: parseBR(cells[10]),
       qtdeAtivos: parseBR(cells[11]),
     };
-    if (!f.fii || f.fii.length > 8 || !f.liquidez || f.liquidez < 100000) continue;
+    if (!f.fii || f.fii.length < 4 || f.fii.length > 10 || f.fii.includes(' ')) continue;
+    if (f.liquidez === null || f.liquidez <= 0) continue;
     f.score = scoreFii(f);
     f.rec = rec(f.score);
     fiis.push(f);
@@ -269,6 +296,15 @@ export default {
     // Cache helper
     const cache = caches.default;
     const cacheKey = new Request(url.toString());
+
+    if (url.pathname === '/api/debug') {
+      try {
+        const data = await handleDebug();
+        return json({ success: true, data });
+      } catch (e) {
+        return json({ success: false, error: e.message });
+      }
+    }
 
     if (url.pathname === '/api/acoes') {
       const cached = await cache.match(cacheKey);
